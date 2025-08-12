@@ -2,25 +2,33 @@ import React, { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useVideo } from '../contexts/VideoContext'
 import {
-  SparklesIcon,
-  PlayIcon,
-  CheckCircleIcon,
+  EyeIcon,
+  XMarkIcon,
+  UserCircleIcon,
+  BookOpenIcon,
   ClockIcon,
   DocumentTextIcon,
+  SparklesIcon,
   ArrowPathIcon,
-  BookOpenIcon,
-  FilmIcon
+  FilmIcon,
+  CheckCircleIcon,
+  PlayIcon
 } from '@heroicons/react/24/outline'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
+import toast from 'react-hot-toast'
 
 const StoryGenerator = () => {
   const [searchParams] = useSearchParams()
-  const { videos, fetchVideos, generateStory, loading } = useVideo()
+  const { videos, fetchVideos, generateStory, loading, fetchStories } = useVideo()
   const [selectedVideos, setSelectedVideos] = useState([])
   const [prompt, setPrompt] = useState('')
   const [storyType, setStoryType] = useState('narrative')
   const [generatedStory, setGeneratedStory] = useState(null)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [showStoriesModal, setShowStoriesModal] = useState(false)
+  const [stories, setStories] = useState([])
+  const [storiesLoading, setStoriesLoading] = useState(false)
+  const [selectedStory, setSelectedStory] = useState(null)
 
   const storyTypes = [
     {
@@ -88,6 +96,19 @@ const StoryGenerator = () => {
     setIsGenerating(false)
   }
 
+  const handleViewStories = async () => {
+    setStoriesLoading(true)
+    setShowStoriesModal(true)
+    const result = await fetchStories()
+    if (result.success) {
+      setStories(result.stories)
+    } else {
+      setStories([])
+      toast.error(result.error || 'Failed to load stories')
+    }
+    setStoriesLoading(false)
+  }
+
   const formatDuration = (seconds) => {
     const minutes = Math.floor(seconds / 60)
     return `${minutes}:${(seconds % 60).toString().padStart(2, '0')}`
@@ -109,6 +130,15 @@ const StoryGenerator = () => {
               <p className="text-xl text-gray-400 max-w-2xl mx-auto">
                 Transform your videos into compelling stories using AI-powered insights
               </p>
+              {/* View Generated Stories Button */}
+              <div className="mt-4">
+                <button
+                  onClick={handleViewStories}
+                  className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold rounded-xl transition-all duration-300"
+                >
+                  View Generated Stories
+                </button>
+              </div>
             </div>
           </div>
 
@@ -462,6 +492,196 @@ const StoryGenerator = () => {
                   </button>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Stories Modal */}
+          {showStoriesModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+              <div
+                className="relative w-full max-w-3xl mx-auto rounded-3xl shadow-2xl glass-modal border border-purple-700/30 flex flex-col"
+                style={{
+                  maxHeight: '90vh',
+                  minHeight: '0',
+                  margin: '24px',
+                }}
+              >
+                {/* Close Button */}
+                <button
+                  className="absolute top-3 right-3 text-gray-400 hover:text-white bg-gray-800/60 rounded-full p-2 transition z-10"
+                  onClick={() => {
+                    setShowStoriesModal(false)
+                    setSelectedStory(null)
+                  }}
+                  aria-label="Close"
+                >
+                  <XMarkIcon className="w-6 h-6" />
+                </button>
+                <div className="flex-1 flex flex-col overflow-y-auto p-0 md:p-8">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+                    <div className="flex items-center gap-3">
+                      <BookOpenIcon className="w-8 h-8 text-purple-400" />
+                      <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
+                        Your Generated Stories
+                      </h2>
+                    </div>
+                    <span className="bg-purple-500/20 text-purple-300 px-4 py-1 rounded-full border border-purple-500/30 text-sm font-semibold">
+                      {stories.length} total
+                    </span>
+                  </div>
+                  {storiesLoading ? (
+                    <div className="flex justify-center py-16">
+                      <LoadingSpinner />
+                    </div>
+                  ) : stories.length === 0 ? (
+                    <div className="text-center text-gray-400 py-16">
+                      <SparklesIcon className="w-12 h-12 mx-auto mb-2 text-purple-400" />
+                      No stories found.
+                    </div>
+                  ) : selectedStory ? (
+                    <div className="story-viewer flex flex-col h-full">
+                      <div className="flex flex-col items-center mb-6">
+                        <span className="px-4 py-1 bg-gradient-to-r from-purple-500/30 to-blue-500/20 text-purple-200 rounded-full border border-purple-500/30 text-xs font-semibold uppercase tracking-wider mb-2">
+                          {selectedStory.storyType}
+                        </span>
+                        <h3 className="text-2xl font-bold text-white text-center mb-2 break-words">{selectedStory.title}</h3>
+                        <div className="flex flex-wrap items-center gap-4 text-gray-400 text-sm mb-2">
+                          <UserCircleIcon className="w-5 h-5" />
+                          <span>{selectedStory.owner?.name || "You"}</span>
+                          <ClockIcon className="w-4 h-4 ml-4" />
+                          <span>{selectedStory.metadata?.readingTime || 0} min read</span>
+                          <DocumentTextIcon className="w-4 h-4 ml-4" />
+                          <span>{selectedStory.metadata?.wordCount || 0} words</span>
+                        </div>
+                      </div>
+                      <div className="prose prose-invert max-w-none text-gray-200 whitespace-pre-line bg-gray-900/60 rounded-2xl p-4 md:p-6 border border-gray-800 shadow-inner mb-6 overflow-y-auto"
+                        style={{ maxHeight: '40vh' }}>
+                        {selectedStory.content}
+                      </div>
+                      <div className="flex flex-wrap gap-3 justify-center mt-auto mb-2">
+                        <button
+                          className="w-full sm:w-auto px-5 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold rounded-xl transition-all duration-300 flex items-center space-x-2 justify-center"
+                          onClick={() => {
+                            navigator.clipboard.writeText(selectedStory.content)
+                            toast.success('Story copied to clipboard!')
+                          }}
+                        >
+                          <DocumentTextIcon className="w-4 h-4" />
+                          <span>Copy</span>
+                        </button>
+                        <button
+                          className="w-full sm:w-auto px-5 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl transition-all duration-300 flex items-center space-x-2 justify-center"
+                          onClick={() => {
+                            const blob = new Blob([selectedStory.content], { type: 'text/plain' })
+                            const url = URL.createObjectURL(blob)
+                            const a = document.createElement('a')
+                            a.href = url
+                            a.download = `${selectedStory.title.substring(0, 30)}-story.txt`
+                            a.click()
+                            URL.revokeObjectURL(url)
+                          }}
+                        >
+                          <ArrowPathIcon className="w-4 h-4" />
+                          <span>Download</span>
+                        </button>
+                        <button
+                          className="w-full sm:w-auto px-5 py-2 bg-gray-800 text-gray-300 font-semibold rounded-xl border border-gray-700 hover:border-gray-600 transition-all duration-300 hover:bg-gray-700 hover:text-white flex items-center space-x-2 justify-center"
+                          onClick={() => setSelectedStory(null)}
+                        >
+                          <ArrowPathIcon className="w-4 h-4" />
+                          <span>Back to List</span>
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <ul className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {stories.map(story => (
+                        <li
+                          key={story._id}
+                          className="group bg-gradient-to-br from-gray-900/80 via-gray-900/60 to-purple-900/30 border border-gray-800 rounded-2xl p-5 shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-[1.025] cursor-pointer relative overflow-hidden"
+                        >
+                          <div className="flex items-center gap-3 mb-2">
+                            <span className="inline-flex items-center px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full border border-purple-500/30 text-xs font-semibold uppercase tracking-wider">
+                              {story.storyType}
+                            </span>
+                            <span className="ml-auto text-gray-400 text-xs">{new Date(story.createdAt).toLocaleDateString()}</span>
+                          </div>
+                          <h4 className="font-bold text-lg text-white mb-1 truncate">{story.title}</h4>
+                          <div className="flex flex-wrap items-center gap-2 text-gray-400 text-xs mb-2">
+                            <UserCircleIcon className="w-4 h-4" />
+                            <span>{story.owner?.name || "You"}</span>
+                            <ClockIcon className="w-4 h-4 ml-3" />
+                            <span>{story.metadata?.readingTime || 0} min</span>
+                            <DocumentTextIcon className="w-4 h-4 ml-3" />
+                            <span>{story.metadata?.wordCount || 0} words</span>
+                          </div>
+                          <div className="line-clamp-3 text-gray-300 text-sm mb-3">
+                            {story.content?.slice(0, 120)}{story.content?.length > 120 ? '...' : ''}
+                          </div>
+                          <button
+                            className="absolute bottom-4 right-4 px-2 py-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl font-semibold shadow-lg opacity-90 group-hover:opacity-100 transition-all flex items-center gap-2"
+                            onClick={e => {
+                              e.stopPropagation()
+                              setSelectedStory(story)
+                            }}
+                          >
+                            <EyeIcon className="w-3 h-3" />
+                            View
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+              {/* Modal Glassmorphism Styles */}
+              <style jsx>{`
+                .glass-modal {
+                  background: rgba(24, 16, 48, 0.85);
+                  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+                  backdrop-filter: blur(16px);
+                  -webkit-backdrop-filter: blur(16px);
+                  border-radius: 2rem;
+                  border: 1.5px solid rgba(168, 85, 247, 0.25);
+                  animation: modalPopIn 0.3s cubic-bezier(0.4,0,0.2,1);
+                  display: flex;
+                  flex-direction: column;
+                  min-height: 0;
+                  max-height: 90vh;
+                  overflow: hidden;
+                }
+                @keyframes modalPopIn {
+                  0% { transform: scale(0.95) translateY(40px); opacity: 0; }
+                  100% { transform: scale(1) translateY(0); opacity: 1; }
+                }
+                .story-viewer {
+                  animation: fadeInStory 0.4s;
+                  display: flex;
+                  flex-direction: column;
+                  height: 100%;
+                  min-height: 0;
+                }
+                @keyframes fadeInStory {
+                  from { opacity: 0; transform: translateY(24px);}
+                  to { opacity: 1; transform: translateY(0);}
+                }
+                .line-clamp-3 {
+                  display: -webkit-box;
+                  -webkit-line-clamp: 3;
+                  -webkit-box-orient: vertical;
+                  overflow: hidden;
+                }
+                @media (max-width: 768px) {
+                  .glass-modal {
+                    max-width: 98vw;
+                    border-radius: 1rem;
+                    margin: 8px;
+                  }
+                  .story-viewer .prose {
+                    padding: 0.5rem !important;
+                  }
+                }
+              `}</style>
             </div>
           )}
 

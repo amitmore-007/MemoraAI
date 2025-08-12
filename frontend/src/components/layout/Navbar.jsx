@@ -70,7 +70,7 @@ const Navbar = () => {
                 </div>
                 <div>
                   <h1 className="text-xl font-bold bg-gradient-to-r from-white via-purple-200 to-violet-200 bg-clip-text text-transparent group-hover:from-purple-300 group-hover:to-pink-300 transition-all duration-300">
-                    MemoraAI
+                    Footage-Flow
                   </h1>
                   <div className="h-0.5 bg-gradient-to-r from-purple-500 to-violet-500 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
                 </div>

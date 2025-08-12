@@ -148,6 +148,20 @@ export const VideoProvider = ({ children }) => {
     }
   }
 
+  const fetchStories = async (params = {}) => {
+    try {
+      setLoading(true)
+      const response = await axios.get('/stories', { params })
+      return { success: true, stories: response.data.stories }
+    } catch (error) {
+      const message = error.response?.data?.message || 'Failed to fetch stories'
+      toast.error(message)
+      return { success: false, error: message }
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const getVideoStats = async () => {
     try {
       const response = await axios.get('/videos/stats')
@@ -193,6 +207,7 @@ export const VideoProvider = ({ children }) => {
     getVideoDetails,
     deleteVideo,
     generateStory,
+    fetchStories,
     getVideoStats,
     getStoryStats,
     updateVideo,
