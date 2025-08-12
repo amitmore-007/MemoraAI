@@ -1,8 +1,9 @@
-# 🎬 VideoStory AI
-
 <div align="center">
+  <img src="./frontend/public/assets/Logo.png" alt="MemoraAI Logo" width="200"/>
+  <h1>MemoraAI</h1>
+  <p><em>Capture, store, and relive your precious memories with AI.</em></p>
+</div>
 
-![VideoStory AI Logo](./frontend/public/assets/Logo.png)
 
 **Transform your videos into compelling stories with the power of AI**
 
@@ -63,7 +64,7 @@ VideoStory AI is a cutting-edge platform that leverages artificial intelligence 
 ### 🏠 Landing Page
 *Beautiful hero section with animated backgrounds and call-to-action*
 
-![Landing Page](./frontend/public/assets/Landing Page.png)
+![Landing Page](./frontend/public/assets/Landing-Page.png)
 
 
 ### 📊 Dashboard
