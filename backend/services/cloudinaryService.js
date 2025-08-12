@@ -6,7 +6,8 @@ import fetch from 'node-fetch'
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+  secure: true // Force HTTPS URLs
 })
 
 // Retry helper function
@@ -107,6 +108,7 @@ export const generateThumbnail = async (videoPublicId) => {
     const thumbnailUrl = cloudinary.url(videoPublicId, {
       resource_type: 'video',
       format: 'jpg',
+      secure: true, // Force HTTPS
       transformation: [
         { width: 640, height: 360, crop: 'fill' },
         { start_offset: '10%' } // Get thumbnail from 10% into the video
@@ -128,6 +130,7 @@ export const extractAndUploadAudioFromVideo = async (videoPublicId) => {
       const audioUrl = cloudinary.url(videoPublicId, {
         resource_type: 'video',
         format: 'mp3',
+        secure: true, // Force HTTPS
         transformation: [
           { flags: 'splice', start_offset: '0' },
           { audio_codec: 'mp3', audio_frequency: '16000', audio_bit_rate: '128k' }, // Enhanced audio quality

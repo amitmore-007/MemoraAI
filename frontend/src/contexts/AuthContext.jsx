@@ -14,8 +14,12 @@ export const useAuth = () => {
 
 // Configure axios defaults with production URL handling
 const getBaseURL = () => {
-  return import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+  console.log('API Base URL:', apiUrl)
+  return apiUrl
 }
+
+// Set base URL
 axios.defaults.baseURL = getBaseURL()
 
 // Add request interceptor to handle CORS and authentication
@@ -23,9 +27,14 @@ axios.interceptors.request.use(
   (config) => {
     // Ensure credentials are included for CORS
     config.withCredentials = true
+    
+    // Log request for debugging
+    console.log(`Making request to: ${config.baseURL}${config.url}`)
+    
     return config
   },
   (error) => {
+    console.error('Request interceptor error:', error)
     return Promise.reject(error)
   }
 )
@@ -34,11 +43,20 @@ axios.interceptors.request.use(
 axios.interceptors.response.use(
   (response) => response,
   (error) => {
+    console.error('Response error:', error)
+    
     if (error.response?.status === 401) {
       // Clear auth data on 401
       localStorage.removeItem('token')
       delete axios.defaults.headers.common['Authorization']
     }
+    
+    // Handle CORS errors
+    if (error.message?.includes('CORS') || error.code === 'ERR_NETWORK') {
+      console.error('CORS or Network error detected')
+      toast.error('Connection error. Please check your internet connection.')
+    }
+    
     return Promise.reject(error)
   }
 )
@@ -75,8 +93,14 @@ export const AuthProvider = ({ children }) => {
       console.log('AuthContext: verifying token...')
       const response = await axios.get('/auth/verify')
       setUser(response.data.user)
+      console.log('Token verification successful')
     } catch (error) {
       console.error('Token verification failed:', error)
+      
+      // Don't show error toast for network issues during token verification
+      if (!error.message?.includes('CORS') && !error.code === 'ERR_NETWORK') {
+        console.log('Clearing invalid token')
+      }
       logout()
     } finally {
       setLoading(false)

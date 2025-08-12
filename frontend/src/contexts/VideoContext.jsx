@@ -24,6 +24,8 @@ export const VideoProvider = ({ children }) => {
       setLoading(true)
       setUploadProgress(0)
 
+      console.log('Starting video upload...', { fileName: file.name, size: file.size })
+
       const formData = new FormData()
       formData.append('video', file)
       formData.append('title', metadata.title || file.name)
@@ -38,14 +40,28 @@ export const VideoProvider = ({ children }) => {
             (progressEvent.loaded * 100) / progressEvent.total
           )
           setUploadProgress(progress)
+          console.log(`Upload progress: ${progress}%`)
         },
+        timeout: 300000 // 5 minute timeout for large files
       })
 
+      console.log('Upload successful:', response.data)
       toast.success('Video uploaded successfully!')
       await fetchVideos() // Refresh video list
       return { success: true, video: response.data.video }
     } catch (error) {
-      const message = error.response?.data?.message || 'Upload failed'
+      console.error('Upload error:', error)
+      
+      let message = 'Upload failed'
+      
+      if (error.code === 'ERR_NETWORK') {
+        message = 'Network error. Please check your connection and try again.'
+      } else if (error.response?.status === 413) {
+        message = 'File too large. Please try a smaller video.'
+      } else if (error.response?.data?.message) {
+        message = error.response.data.message
+      }
+      
       toast.error(message)
       return { success: false, error: message }
     } finally {

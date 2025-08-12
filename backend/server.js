@@ -40,19 +40,24 @@ const corsOptions = {
     
     const allowedOrigins = [
       process.env.CORS_ORIGIN,
+      'https://memoraai-1.onrender.com',
       'http://localhost:5173',
       'http://localhost:3000',
       'https://localhost:5173'
     ].filter(Boolean)
     
+    console.log(`CORS check: origin=${origin}, allowed=${allowedOrigins}`)
+    
     // In production, also allow any onrender.com subdomain
     if (process.env.NODE_ENV === 'production') {
-      if (origin.endsWith('.onrender.com')) {
+      if (origin && origin.endsWith('.onrender.com')) {
+        console.log('CORS: Allowing onrender.com subdomain')
         return callback(null, true)
       }
     }
     
     if (allowedOrigins.indexOf(origin) !== -1) {
+      console.log('CORS: Origin allowed')
       callback(null, true)
     } else {
       console.warn(`CORS blocked origin: ${origin}`)
@@ -60,7 +65,9 @@ const corsOptions = {
     }
   },
   credentials: true,
-  optionsSuccessStatus: 200
+  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }
 
 app.use(cors(corsOptions))
