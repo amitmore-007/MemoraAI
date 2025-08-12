@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![VideoStory AI Logo](./frontend/public/assets/logo.png)
+![VideoStory AI Logo](./frontend/public/assets/Logo.png)
 
 **Transform your videos into compelling stories with the power of AI**
 
@@ -79,7 +79,7 @@ VideoStory AI is a cutting-edge platform that leverages artificial intelligence 
 ### 📝 Story Generation
 *AI-powered story creation with customizable options*
 
-![Story Generation](./frontend/public/assets/Story-generator.png)
+![Story Generation](./frontend/public/assets/Story-Generator.png)
 
 ### 🔍 Video Detail and transcription
 *Advanced search with filters and smart suggestions*
@@ -332,37 +332,6 @@ videostory-ai/
 ```
 
 ---
-
-## 🚀 Deployment
-
-### Asset Deployment Considerations
-
-When deploying your application:
-
-1. **Static Assets**: Ensure all assets in `/public/assets/` are included in your build
-2. **CDN Integration**: Consider using a CDN for faster asset delivery
-3. **Image Optimization**: Compress images before deployment
-4. **Cache Headers**: Set appropriate cache headers for static assets
-
-### Backend Deployment (Railway/Heroku)
-
-```bash
-# Build for production
-npm run build
-
-# Set environment variables in your hosting platform
-# Deploy using Git or platform-specific CLI
-```
-
-### Frontend Deployment (Vercel/Netlify)
-
-```bash
-# Build for production
-npm run build
-
-# Deploy the dist/ folder (includes public/assets/)
-# Configure environment variables
-```
 
 ### Environment Variables for Production
 
