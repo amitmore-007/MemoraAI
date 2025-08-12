@@ -14,14 +14,8 @@ export const useAuth = () => {
 
 // Configure axios defaults with production URL handling
 const getBaseURL = () => {
-  // In production, use the deployed backend URL
-  if (import.meta.env.PROD) {
-    return import.meta.env.VITE_API_URL || 'https://your-backend-app.onrender.com/api'
-  }
-  // In development, use local backend
   return import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 }
-
 axios.defaults.baseURL = getBaseURL()
 
 // Add request interceptor to handle CORS and authentication
@@ -67,9 +61,9 @@ export const AuthProvider = ({ children }) => {
   // Check for existing token on app load
   useEffect(() => {
     const token = localStorage.getItem('token')
+    console.log('AuthContext: token from localStorage', token)
     if (token) {
       setAuthToken(token)
-      // Verify token with backend
       verifyToken()
     } else {
       setLoading(false)
@@ -78,6 +72,7 @@ export const AuthProvider = ({ children }) => {
 
   const verifyToken = async () => {
     try {
+      console.log('AuthContext: verifying token...')
       const response = await axios.get('/auth/verify')
       setUser(response.data.user)
     } catch (error) {

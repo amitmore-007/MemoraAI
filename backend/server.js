@@ -98,6 +98,21 @@ app.get('/health', (req, res) => {
   })
 })
 
+// Root welcome endpoint
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'VideoStory AI Backend API is running',
+    version: '1.0.0',
+    endpoints: {
+      health: '/health',
+      auth: '/api/auth',
+      videos: '/api/videos',
+      stories: '/api/stories'
+    }
+  })
+})
+
 // Routes
 app.use('/api/auth', authRoutes)
 app.use('/api/videos', videoRoutes)
