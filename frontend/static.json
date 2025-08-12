@@ -1,0 +1,14 @@
+{
+  "redirects": [
+    {
+      "source": "/api/(.*)",
+      "destination": "https://memoraai-ans7.onrender.com/api/$1",
+      "type": 200
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html",
+      "type": 200
+    }
+  ]
+}
