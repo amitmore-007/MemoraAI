@@ -32,11 +32,38 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }
 }))
 
-// CORS configuration
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
-  credentials: true
-}))
+// CORS configuration - Updated for production
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, etc.)
+    if (!origin) return callback(null, true)
+    
+    const allowedOrigins = [
+      process.env.CORS_ORIGIN,
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'https://localhost:5173'
+    ].filter(Boolean)
+    
+    // In production, also allow any onrender.com subdomain
+    if (process.env.NODE_ENV === 'production') {
+      if (origin.endsWith('.onrender.com')) {
+        return callback(null, true)
+      }
+    }
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true)
+    } else {
+      console.warn(`CORS blocked origin: ${origin}`)
+      callback(new Error('Not allowed by CORS'))
+    }
+  },
+  credentials: true,
+  optionsSuccessStatus: 200
+}
+
+app.use(cors(corsOptions))
 
 // Rate limiting
 const limiter = rateLimit({

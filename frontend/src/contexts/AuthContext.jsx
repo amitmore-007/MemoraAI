@@ -12,8 +12,42 @@ export const useAuth = () => {
   return context
 }
 
-// Configure axios defaults
-axios.defaults.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+// Configure axios defaults with production URL handling
+const getBaseURL = () => {
+  // In production, use the deployed backend URL
+  if (import.meta.env.PROD) {
+    return import.meta.env.VITE_API_URL || 'https://your-backend-app.onrender.com/api'
+  }
+  // In development, use local backend
+  return import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+}
+
+axios.defaults.baseURL = getBaseURL()
+
+// Add request interceptor to handle CORS and authentication
+axios.interceptors.request.use(
+  (config) => {
+    // Ensure credentials are included for CORS
+    config.withCredentials = true
+    return config
+  },
+  (error) => {
+    return Promise.reject(error)
+  }
+)
+
+// Add response interceptor to handle common errors
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Clear auth data on 401
+      localStorage.removeItem('token')
+      delete axios.defaults.headers.common['Authorization']
+    }
+    return Promise.reject(error)
+  }
+)
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)

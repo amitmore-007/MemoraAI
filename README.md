@@ -408,3 +408,67 @@ Need help? We're here for you!
 Made with ❤️ by the VideoStory AI Team
 
 </div>
+
+---
+
+# VideoStory AI - Deployment Guide
+
+## Render Deployment Instructions
+
+### Prerequisites
+1. Create a MongoDB Atlas account and database
+2. Create accounts for Cloudinary and Groq/OpenAI
+3. Fork this repository to your GitHub account
+
+### Backend Deployment
+
+1. **Create a new Web Service on Render:**
+   - Connect your GitHub repository
+   - Select the `backend` folder as the root directory
+   - Use the following settings:
+     - **Environment**: Node
+     - **Build Command**: `npm install`
+     - **Start Command**: `npm start`
+
+2. **Set Environment Variables in Render Dashboard:**
+   ```
+   NODE_ENV=production
+   MONGODB_URI=your_mongodb_atlas_uri
+   JWT_SECRET=your_jwt_secret
+   CLOUDINARY_CLOUD_NAME=your_cloudinary_name
+   CLOUDINARY_API_KEY=your_cloudinary_key
+   CLOUDINARY_API_SECRET=your_cloudinary_secret
+   GROQ_API_KEY=your_groq_api_key
+   CORS_ORIGIN=https://your-frontend.onrender.com
+   ```
+
+### Frontend Deployment
+
+1. **Create a new Static Site on Render:**
+   - Connect your GitHub repository
+   - Select the `frontend` folder as the root directory
+   - Use the following settings:
+     - **Build Command**: `npm install && npm run build`
+     - **Publish Directory**: `dist`
+
+2. **Set Environment Variables:**
+   ```
+   VITE_API_URL=https://your-backend.onrender.com/api
+   ```
+
+### Post-Deployment Steps
+
+1. Update the `CORS_ORIGIN` in your backend environment variables with the actual frontend URL
+2. Test all endpoints and functionality
+3. Monitor logs for any issues
+
+### Common Issues
+
+- **CORS Errors**: Ensure CORS_ORIGIN matches your frontend URL exactly
+- **Build Failures**: Check that all dependencies are in package.json
+- **Database Connection**: Verify MongoDB URI is correct and database is accessible
+- **API Keys**: Ensure all API keys are properly set in environment variables
+
+### Health Check
+
+The backend includes a health check endpoint at `/health` that Render uses to monitor the service.
