@@ -12,6 +12,7 @@ import VideoDetail from './pages/VideoDetail'
 import StoryGenerator from './pages/StoryGenerator'
 import Profile from './pages/Profile'
 import LoadingSpinner from './components/ui/LoadingSpinner'
+import DebugVideos from './pages/DebugVideos'
 
 function App() {
   const { user, loading } = useAuth()
@@ -36,6 +37,7 @@ function App() {
         <Route path="/video/:id" element={user ? <VideoDetail /> : <Navigate to="/login" />} />
         <Route path="/story-generator" element={user ? <StoryGenerator /> : <Navigate to="/login" />} />
         <Route path="/profile" element={user ? <Profile /> : <Navigate to="/login" />} />
+        <Route path="/debug-videos" element={user ? <DebugVideos /> : <Navigate to="/login" />} />
         
         {/* Catch all */}
         <Route path="*" element={<Navigate to="/" />} />

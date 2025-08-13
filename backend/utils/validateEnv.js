@@ -13,7 +13,10 @@ const validateEnv = () => {
     'CLOUDINARY_CLOUD_NAME',
     'CLOUDINARY_API_KEY', 
     'CLOUDINARY_API_SECRET',
-    'OPENAI_API_KEY'
+    'OPENAI_API_KEY',
+    'GROQ_API_KEY',
+    'ASSEMBLYAI_API_KEY',
+    'HF_API_KEY'
   ]
 
   const missingRequired = []
@@ -56,6 +59,9 @@ const validateEnv = () => {
   console.log(`   - JWT: ${process.env.JWT_SECRET ? '✅' : '❌'}`)
   console.log(`   - Cloudinary: ${process.env.CLOUDINARY_CLOUD_NAME ? '✅' : '❌'}`)
   console.log(`   - OpenAI: ${process.env.OPENAI_API_KEY ? '✅' : '❌'}`)
+  console.log(`   - Groq: ${process.env.GROQ_API_KEY ? '✅' : '❌'}`)
+  console.log(`   - AssemblyAI: ${process.env.ASSEMBLYAI_API_KEY ? '✅' : '❌'}`)
+  console.log(`   - HuggingFace: ${process.env.HF_API_KEY ? '✅' : '❌'}`)
 }
 
 export default validateEnv

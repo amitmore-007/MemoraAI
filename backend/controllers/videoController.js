@@ -13,6 +13,10 @@ import {
   analyzeVideoContent, 
   generateVideoTags 
 } from '../services/openaiService.js'
+import { 
+  runMultiModalInsights,
+  generateHighlightReel
+} from '../services/insightsService.js'
 
 // @desc    Upload video
 // @route   POST /api/videos/upload
@@ -347,6 +351,128 @@ export const getVideoStats = async (req, res, next) => {
   }
 }
 
+// @desc    Get video insights
+// @route   GET /api/videos/:id/insights
+// @access  Private
+export const getVideoInsights = async (req, res, next) => {
+  try {
+    console.log(`📊 [INSIGHTS] === REQUEST START ===`)
+    console.log(`📊 [INSIGHTS] Video ID: ${req.params.id}`)
+    console.log(`📊 [INSIGHTS] User ID: ${req.user.id}`)
+    console.log(`📊 [INSIGHTS] Full URL: ${req.protocol}://${req.get('host')}${req.originalUrl}`)
+    console.log(`📊 [INSIGHTS] Method: ${req.method}`)
+    
+    // Validate video ID format
+    if (!req.params.id.match(/^[0-9a-fA-F]{24}$/)) {
+      console.log(`❌ [INSIGHTS] Invalid video ID format: ${req.params.id}`)
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid video ID format' 
+      })
+    }
+    
+    const video = await Video.findOne({
+      _id: req.params.id,
+      owner: req.user.id
+    })
+
+    if (!video) {
+      console.log(`❌ [INSIGHTS] Video not found: ${req.params.id}`)
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Video not found' 
+      })
+    }
+
+    console.log(`✅ [INSIGHTS] Video found: ${video.title}`)
+    console.log(`📊 [INSIGHTS] Video has transcription: ${!!video.transcription}`)
+    console.log(`📊 [INSIGHTS] Video has insights: ${!!video.insights}`)
+    console.log(`📊 [INSIGHTS] Insights status: ${video.insights?.processingStatus || 'none'}`)
+
+    // If insights don't exist or are pending, trigger processing
+    if (!video.insights || video.insights.processingStatus === 'pending') {
+      console.log(`🔄 [INSIGHTS] Triggering insights processing...`)
+      
+      // Start background processing (don't await)
+      processInsightsInBackground(video._id).catch(error => {
+        console.error('❌ [INSIGHTS] Background processing failed:', error)
+      })
+      
+      // Return pending status immediately
+      const pendingInsights = {
+        sentimentTimeline: [],
+        topicChapters: [],
+        speakerDiarization: [],
+        highlightReel: null,
+        keywords: [],
+        processingStatus: 'processing',
+        message: 'Insights are being processed. This may take a few minutes.',
+        apiKeysConfigured: {
+          assemblyAI: !!process.env.ASSEMBLYAI_API_KEY,
+          huggingFace: !!process.env.HF_API_KEY,
+          groq: !!process.env.GROQ_API_KEY,
+          openAI: !!process.env.OPENAI_API_KEY
+        }
+      }
+
+      console.log(`⏳ [INSIGHTS] Returning pending status`)
+      return res.status(200).json({ 
+        success: true, 
+        insights: pendingInsights 
+      })
+    }
+
+    // Return existing insights
+    console.log(`✅ [INSIGHTS] Returning insights with status: ${video.insights.processingStatus}`)
+    
+    res.status(200).json({ 
+      success: true, 
+      insights: video.insights 
+    })
+    
+  } catch (error) {
+    console.error('❌ [INSIGHTS] Controller error:', error)
+    console.error('❌ [INSIGHTS] Stack trace:', error.stack)
+    
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
+    })
+  }
+}
+
+// @desc    Download highlight reel
+// @route   GET /api/videos/:id/highlight-reel
+// @access  Private
+export const downloadHighlightReel = async (req, res, next) => {
+  try {
+    const video = await Video.findOne({
+      _id: req.params.id,
+      owner: req.user.id
+    })
+
+    if (!video) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Video not found' 
+      })
+    }
+
+    if (!video.insights?.highlightReel?.url) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Highlight reel not available' 
+      })
+    }
+
+    res.redirect(video.insights.highlightReel.url)
+  } catch (error) {
+    console.error('Error downloading highlight reel:', error)
+    next(error)
+  }
+}
+
 // Background processing function
 const processVideoInBackground = async (videoId) => {
   let video = null
@@ -484,6 +610,28 @@ const processVideoInBackground = async (videoId) => {
       await video.save()
     }
 
+    // Step 3: Insights Processing
+    try {
+      video.processing.insightsStatus = 'processing'
+      video.processing.insightsProgress = 0
+      await video.save()
+
+      // Run multi-modal insights (speaker diarization, sentiment, topics, keywords)
+      await runMultiModalInsights(video)
+      video.processing.insightsStatus = 'completed'
+      video.processing.insightsProgress = 100
+      await video.save()
+
+      // Generate highlight reel (async, may take longer)
+      generateHighlightReel(video)
+      // highlightReel status will be updated by service
+
+    } catch (error) {
+      video.processing.insightsStatus = 'failed'
+      await video.save()
+      console.error('Insights processing failed:', error)
+    }
+
     // Determine final status
     const hasAnySuccess = video.processing.transcriptionStatus === 'completed' || 
                          video.processing.aiAnalysisStatus === 'completed'
@@ -514,6 +662,47 @@ const processVideoInBackground = async (videoId) => {
       }
     } catch (updateError) {
       console.error('❌ Failed to update video status after error:', updateError.message)
+    }
+  }
+}
+
+// Background insights processing function
+const processInsightsInBackground = async (videoId) => {
+  try {
+    console.log(`🔄 [BACKGROUND] Starting insights processing for video: ${videoId}`)
+    
+    const video = await Video.findById(videoId)
+    if (!video) {
+      console.error(`❌ [BACKGROUND] Video not found for insights processing: ${videoId}`)
+      return
+    }
+
+    console.log(`🔄 [BACKGROUND] Processing insights for: ${video.title}`)
+    
+    // Run the dynamic multi-modal insights
+    await runMultiModalInsights(video)
+    
+    console.log(`✅ [BACKGROUND] Insights processing completed for: ${video.title}`)
+  } catch (error) {
+    console.error('❌ [BACKGROUND] Insights processing failed:', error)
+    
+    // Update video with failed status
+    try {
+      const video = await Video.findById(videoId)
+      if (video) {
+        video.insights = {
+          processingStatus: 'failed',
+          error: error.message,
+          speakerDiarization: [],
+          sentimentTimeline: [],
+          topicChapters: [],
+          keywords: [],
+          processedAt: new Date()
+        }
+        await video.save()
+      }
+    } catch (updateError) {
+      console.error('❌ [BACKGROUND] Failed to update video with error status:', updateError)
     }
   }
 }

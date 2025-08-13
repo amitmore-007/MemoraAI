@@ -122,43 +122,8 @@ app.get('/', (req, res) => {
 
 // Routes
 app.use('/api/auth', authRoutes)
-app.use('/api/videos', videoRoutes)
+app.use('/api/videos', videoRoutes)  // This will include the insights route
 app.use('/api/stories', storyRoutes)
-
-// Log route registration
-console.log('🛠️ Routes registered:')
-console.log('   - /api/auth (Auth routes)')
-console.log('   - /api/videos (Video routes with insights)')
-console.log('   - /api/stories (Story routes)')
-
-// Add deployment verification endpoint
-app.get('/api/deployment/check', (req, res) => {
-  res.json({
-    success: true,
-    message: 'Backend deployment active',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV,
-    version: '2.0.0-insights',
-    features: {
-      insights: true,
-      highlightReel: true,
-      speakerDiarization: true,
-      sentimentAnalysis: true
-    }
-  })
-})
-
-// Add route debugging middleware after routes are registered
-if (process.env.NODE_ENV === 'development') {
-  app.use((req, res, next) => {
-    console.log(`🌐 [${new Date().toISOString()}] ${req.method} ${req.path}`)
-    if (req.path.includes('insights')) {
-      console.log(`📊 [INSIGHTS] Route hit: ${req.method} ${req.path}`)
-      console.log(`📊 [INSIGHTS] Full URL: ${req.protocol}://${req.get('host')}${req.originalUrl}`)
-    }
-    next()
-  })
-}
 
 // 404 handler
 app.use('*', (req, res) => {

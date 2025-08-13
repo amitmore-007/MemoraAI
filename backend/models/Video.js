@@ -134,6 +134,11 @@ const videoSchema = new mongoose.Schema({
       enum: ['pending', 'processing', 'completed', 'failed'],
       default: 'pending'
     },
+    insightsStatus: {
+      type: String,
+      enum: ['pending', 'processing', 'completed', 'failed'],
+      default: 'pending'
+    },
     error: {
       type: String,
       default: null
@@ -145,6 +150,10 @@ const videoSchema = new mongoose.Schema({
     completedAt: {
       type: Date,
       default: null
+    },
+    insightsProgress: {
+      type: Number,
+      default: 0
     }
   },
   views: {
@@ -163,7 +172,39 @@ const videoSchema = new mongoose.Schema({
   tags: [{
     type: String,
     trim: true
-  }]
+  }],
+  insights: {
+    speakerDiarization: [{
+      speaker: String, // "Speaker 1", "Speaker 2", etc.
+      start: Number,
+      end: Number,
+      text: String
+    }],
+    sentimentTimeline: [{
+      timestamp: Number,
+      sentiment_score: Number,
+      sentiment_label: String
+    }],
+    topicChapters: [{
+      title: String,
+      start_time: Number,
+      end_time: Number,
+      summary: String
+    }],
+    keywords: [{
+      phrase: String,
+      timestamps: [Number]
+    }],
+    highlightReel: {
+      status: { type: String, default: 'pending' }, // pending, processing, ready, failed
+      url: String,
+      segments: [{
+        start: Number,
+        end: Number,
+        phrase: String
+      }]
+    }
+  }
 }, {
   timestamps: true
 })

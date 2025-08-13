@@ -8,7 +8,7 @@ import {
 } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
 
-const TranscriptionViewer = ({ transcription, videoRef = null, className = '' }) => {
+const TranscriptionViewer = ({ transcription, videoRef = null, className = '', speakerDiarization = [] }) => {
   const [searchTerm, setSearchTerm] = useState('')
   const [currentSegment, setCurrentSegment] = useState(null)
 
@@ -17,6 +17,14 @@ const TranscriptionViewer = ({ transcription, videoRef = null, className = '' })
     : transcription?.text || ''
 
   const segments = transcription?.segments || []
+
+  // Merge speaker labels into segments if available
+  const segmentsWithSpeakers = segments.map((seg, idx) => {
+    const speaker = speakerDiarization?.find(s =>
+      seg.start >= s.start && seg.end <= s.end
+    )?.speaker || `Speaker ${idx % 2 + 1}`
+    return { ...seg, speaker }
+  })
 
   const handleSegmentClick = (segment) => {
     if (videoRef?.current) {
@@ -72,14 +80,14 @@ const TranscriptionViewer = ({ transcription, videoRef = null, className = '' })
       {/* Content */}
       <div className="p-6">
         {/* Segments View */}
-        {segments.length > 0 && (
+        {segmentsWithSpeakers.length > 0 && (
           <div className="mb-8">
             <h4 className="text-lg font-semibold text-white mb-4 flex items-center space-x-2">
               <ClockIcon className="w-5 h-5 text-blue-400" />
               <span>Interactive Timeline</span>
             </h4>
             <div className="space-y-2 max-h-64 overflow-y-auto">
-              {segments
+              {segmentsWithSpeakers
                 .filter(segment => 
                   !searchTerm || segment.text.toLowerCase().includes(searchTerm.toLowerCase())
                 )
@@ -101,6 +109,7 @@ const TranscriptionViewer = ({ transcription, videoRef = null, className = '' })
                       <PlayIcon className="w-4 h-4 text-gray-400 mx-auto mt-1" />
                     </div>
                     <div className="flex-1 min-w-0">
+                      <span className="text-xs text-purple-400 font-bold mr-2">{segment.speaker}</span>
                       <p 
                         className="text-gray-300 text-sm leading-relaxed"
                         dangerouslySetInnerHTML={{

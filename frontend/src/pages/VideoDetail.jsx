@@ -15,11 +15,12 @@ import {
 } from '@heroicons/react/24/outline'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 import toast from 'react-hot-toast'
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 
 const VideoDetail = () => {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { getVideoDetails, deleteVideo, updateVideo, currentVideo, loading } = useVideo()
+  const { getVideoDetails, deleteVideo, updateVideo, currentVideo, loading, fetchVideoInsights } = useVideo()
   const [video, setVideo] = useState(null)
   const [isEditing, setIsEditing] = useState(false)
   const [editForm, setEditForm] = useState({
@@ -27,6 +28,7 @@ const VideoDetail = () => {
     description: ''
   })
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [insights, setInsights] = useState(null)
 
   useEffect(() => {
     if (id) {
@@ -44,11 +46,47 @@ const VideoDetail = () => {
     }
   }, [currentVideo])
 
+  useEffect(() => {
+    if (video?._id) {
+      fetchInsights()
+    }
+  }, [video])
+
   const loadVideo = async () => {
     const result = await getVideoDetails(id)
     if (!result.success) {
       toast.error('Video not found')
       navigate('/dashboard')
+    }
+  }
+
+  const fetchInsights = async () => {
+    try {
+      const result = await fetchVideoInsights(video._id)
+      if (result.success) {
+        setInsights(result.insights)
+      } else {
+        // Set empty insights structure on failure
+        setInsights({
+          sentimentTimeline: [],
+          topicChapters: [],
+          speakerDiarization: [],
+          highlightReel: null,
+          keywords: [],
+          processingStatus: 'pending'
+        })
+      }
+    } catch (error) {
+      console.error('Error fetching insights:', error)
+      // Set empty insights to prevent UI issues
+      setInsights({
+        sentimentTimeline: [],
+        topicChapters: [],
+        speakerDiarization: [],
+        highlightReel: null,
+        keywords: [],
+        processingStatus: 'failed'
+      })
     }
   }
 
@@ -620,6 +658,101 @@ const VideoDetail = () => {
               </div>
             </div>
           </div>
+
+          {/* Sentiment Timeline Chart */}
+          {insights && insights.sentimentTimeline && insights.sentimentTimeline.length > 0 && (
+            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 mb-6">
+              <h3 className="text-xl font-bold text-white mb-4">Sentiment Timeline</h3>
+              <ResponsiveContainer width="100%" height={200}>
+                <LineChart data={insights.sentimentTimeline}>
+                  <XAxis dataKey="timestamp" />
+                  <YAxis domain={[-1, 1]} />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="sentiment_score" stroke="#a855f7" />
+                </LineChart>
+              </ResponsiveContainer>
+              <div className="flex gap-2 mt-2">
+                {insights.sentimentTimeline.map((s, i) => (
+                  <span key={i} className={`px-2 py-1 rounded text-xs ${s.sentiment_label === 'POSITIVE' ? 'bg-green-500/20 text-green-300' : s.sentiment_label === 'NEGATIVE' ? 'bg-red-500/20 text-red-300' : 'bg-gray-700 text-gray-300'}`}>
+                    {s.sentiment_label}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Processing Status for Insights */}
+          {insights && insights.processingStatus === 'pending' && (
+            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 mb-6">
+              <h3 className="text-xl font-bold text-white mb-4">Advanced Insights</h3>
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
+                <p className="text-gray-400">Processing advanced insights... This may take a few minutes.</p>
+              </div>
+            </div>
+          )}
+
+          {/* Processing Status for Failed Insights */}
+          {insights && insights.processingStatus === 'failed' && (
+            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 mb-6">
+              <h3 className="text-xl font-bold text-white mb-4">Advanced Insights</h3>
+              <div className="text-center py-8">
+                <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-red-400 text-2xl">!</span>
+                </div>
+                <p className="text-gray-400">Advanced insights processing failed. Basic analysis is still available.</p>
+              </div>
+            </div>
+          )}
+
+          {/* Topic Chapters Navigation */}
+          {insights?.topicChapters && insights.topicChapters.length > 0 && (
+            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 mb-6">
+              <h3 className="text-xl font-bold text-white mb-4">Topic Chapters</h3>
+              <ul className="space-y-2">
+                {insights.topicChapters.map((ch, idx) => (
+                  <li key={idx}>
+                    <button
+                      className="px-4 py-2 bg-purple-500/20 text-purple-300 rounded-lg border border-purple-500/30 hover:bg-purple-500/40"
+                      onClick={() => {
+                        // Seek video to chapter start
+                        const videoElement = document.querySelector('video');
+                        if (videoElement) videoElement.currentTime = ch.start_time;
+                      }}
+                    >
+                      {ch.title} ({formatDuration(ch.start_time)} - {formatDuration(ch.end_time)})
+                    </button>
+                    <p className="text-gray-400 text-sm">{ch.summary}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Speaker Diarization in Transcription */}
+          {/* Pass insights.speakerDiarization to TranscriptionViewer as prop */}
+
+          {/* Highlight Reel Download */}
+          {insights && insights.highlightReel && insights.highlightReel.status === 'ready' && (
+            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 mb-6">
+              <h3 className="text-xl font-bold text-white mb-4">Keyword Highlight Reel</h3>
+              <button
+                className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl font-semibold"
+                onClick={() => {
+                  if (insights && insights.highlightReel && insights.highlightReel.url) {
+                    window.open(insights.highlightReel.url, '_blank')
+                  } else {
+                    toast.error('Highlight reel not available')
+                  }
+                }}
+              >
+                Download Highlight Reel (MP4)
+              </button>
+              <div className="mt-2 text-xs text-gray-400">
+                {insights && insights.highlightReel && insights.highlightReel.segments ? insights.highlightReel.segments.length : 0} segments extracted from keywords.
+              </div>
+            </div>
+          )}
 
           {/* Delete Confirmation Modal */}
           {showDeleteConfirm && (

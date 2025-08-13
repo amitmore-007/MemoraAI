@@ -195,6 +195,55 @@ export const VideoProvider = ({ children }) => {
     }
   }
 
+  const fetchVideoInsights = async (videoId) => {
+    try {
+      setLoading(true)
+      console.log(`📊 [DEBUG] Fetching insights for video ID: ${videoId}`)
+      const response = await axios.get(`/videos/${videoId}/insights`)
+      return { success: true, insights: response.data.insights }
+    } catch (error) {
+      console.error('Failed to fetch insights:', error)
+      console.error('Response status:', error.response?.status)
+      console.error('Response data:', error.response?.data)
+      
+      // Don't show error toast for 404 - insights might not be ready yet
+      if (error.response?.status !== 404) {
+        toast.error('Failed to fetch insights')
+      }
+      
+      // Return empty insights structure for 404
+      if (error.response?.status === 404) {
+        return { 
+          success: true, 
+          insights: {
+            sentimentTimeline: [],
+            topicChapters: [],
+            speakerDiarization: [],
+            highlightReel: null,
+            keywords: [],
+            processingStatus: 'pending'
+          }
+        }
+      }
+      
+      return { success: false, error: error.message }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Debug method to list videos with IDs
+  const debugListVideos = async () => {
+    try {
+      const response = await axios.get('/videos/debug/list')
+      console.log('📹 [DEBUG] Video list:', response.data)
+      return response.data
+    } catch (error) {
+      console.error('❌ [DEBUG] Failed to list videos:', error)
+      return { success: false, error: error.message }
+    }
+  }
+
   const value = {
     videos,
     loading,
@@ -211,6 +260,9 @@ export const VideoProvider = ({ children }) => {
     getVideoStats,
     getStoryStats,
     updateVideo,
+    fetchVideoInsights,
+    // downloadHighlightReel,
+    debugListVideos, // Add debug method
     setSearchResults,
     setCurrentVideo
   }
