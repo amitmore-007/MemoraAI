@@ -128,7 +128,7 @@ app.use('/api/stories', storyRoutes)
 // Log route registration
 console.log('🛠️ Routes registered:')
 console.log('   - /api/auth (Auth routes)')
-console.log('   - /api/videos (Video routes with insights)')
+console.log('   - /api/videos (Video routes)')
 console.log('   - /api/stories (Story routes)')
 
 // Add deployment verification endpoint
@@ -138,12 +138,11 @@ app.get('/api/deployment/check', (req, res) => {
     message: 'Backend deployment active',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV,
-    version: '2.0.0-insights',
+    version: '2.0.0-basic',
     features: {
-      insights: true,
-      highlightReel: true,
-      speakerDiarization: true,
-      sentimentAnalysis: true
+      transcription: true,
+      aiAnalysis: true,
+      stories: true
     }
   })
 })
@@ -152,10 +151,6 @@ app.get('/api/deployment/check', (req, res) => {
 if (process.env.NODE_ENV === 'development') {
   app.use((req, res, next) => {
     console.log(`🌐 [${new Date().toISOString()}] ${req.method} ${req.path}`)
-    if (req.path.includes('insights')) {
-      console.log(`📊 [INSIGHTS] Route hit: ${req.method} ${req.path}`)
-      console.log(`📊 [INSIGHTS] Full URL: ${req.protocol}://${req.get('host')}${req.originalUrl}`)
-    }
     next()
   })
 }

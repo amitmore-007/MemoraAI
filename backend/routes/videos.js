@@ -7,9 +7,7 @@ import {
   updateVideo,
   deleteVideo,
   searchVideos,
-  getVideoStats,
-  getVideoInsights,
-  downloadHighlightReel
+  getVideoStats
 } from '../controllers/videoController.js'
 import { protect } from '../middleware/auth.js'
 import { uploadVideo as uploadMiddleware, handleUploadError } from '../middleware/upload.js'
@@ -84,12 +82,6 @@ router.use((req, res, next) => {
   console.log(`🛣️ [ROUTE] ${req.method} ${req.path} - Original URL: ${req.originalUrl}`)
   console.log(`🛣️ [ROUTE] Params:`, req.params)
   console.log(`🛣️ [ROUTE] Query:`, req.query)
-  
-  if (req.path.includes('insights')) {
-    console.log(`📊 [INSIGHTS-ROUTE] Route matched: ${req.path}`)
-    console.log(`📊 [INSIGHTS-ROUTE] Video ID: ${req.params.id}`)
-  }
-  
   next()
 })
 
@@ -104,46 +96,35 @@ router.get('/search', searchValidation, searchVideos)
 router.get('/stats', getVideoStats)
 
 // Health and debug routes
-router.get('/health/insights', (req, res) => {
+router.get('/health', (req, res) => {
   res.json({ 
     success: true, 
-    message: 'Insights routes are working',
+    message: 'Video routes are working',
     timestamp: new Date().toISOString(),
-    deployment: 'render-production',
-    availableRoutes: [
-      'GET /:id/insights',
-      'GET /:id/highlight-reel',
-      'GET /:id/insights-test'
-    ]
+    deployment: 'render-production'
   })
 })
 
 router.get('/deployment/verify', (req, res) => {
   res.json({ 
     success: true, 
-    message: 'Latest deployment with insights routes active',
+    message: 'Latest deployment with basic video functionality',
     timestamp: new Date().toISOString(),
-    version: '2.0.0-insights',
-    platform: 'render',
-    routes: [
-      'GET /:id/insights ✅',
-      'GET /:id/highlight-reel ✅',
-      'GET /deployment/verify ✅'
-    ]
+    version: '2.0.0-basic',
+    platform: 'render'
   })
 })
 
 // Add a debug route to list videos with IDs
 router.get('/debug/list', (req, res) => {
   Video.find({ owner: req.user.id })
-    .select('_id title createdAt processing insights')
+    .select('_id title createdAt processing')
     .limit(10)
     .then(videos => {
       console.log(`📹 [DEBUG] Found ${videos.length} videos for user ${req.user.id}`)
       videos.forEach(video => {
         console.log(`📹 [DEBUG] Video: ${video._id} - "${video.title}"`)
         console.log(`📹 [DEBUG] Processing: ${video.processing?.status || 'unknown'}`)
-        console.log(`📹 [DEBUG] Insights: ${video.insights?.processingStatus || 'none'}`)
       })
       
       res.json({
@@ -153,8 +134,7 @@ router.get('/debug/list', (req, res) => {
           id: v._id,
           title: v.title,
           createdAt: v.createdAt,
-          processingStatus: v.processing?.status,
-          insightsStatus: v.insights?.processingStatus
+          processingStatus: v.processing?.status
         }))
       })
     })
@@ -164,26 +144,11 @@ router.get('/debug/list', (req, res) => {
     })
 })
 
-// CRITICAL: Parameterized routes with specific patterns come NEXT
-router.get('/:id/insights', getVideoInsights)
-router.get('/:id/highlight-reel', downloadHighlightReel)
-
-// Add a test route to verify insights endpoint works
-router.get('/:id/insights-test', (req, res) => {
-  console.log(`🧪 [TEST] Insights test route hit for video: ${req.params.id}`)
-  res.json({ 
-    success: true, 
-    message: 'Insights test route working',
-    videoId: req.params.id,
-    timestamp: new Date().toISOString(),
-    deployment: 'render-production'
-  })
-})
-
-// Generic :id routes MUST come LAST to avoid conflicts
+// Generic :id routes
 router.route('/:id')
   .get(getVideo)
   .put(updateValidation, updateVideo)
   .delete(deleteVideo)
 
 export default router
+         
